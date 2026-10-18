@@ -9,7 +9,9 @@ WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
 RUN git clone --depth 1 --branch "$SERVER_REF" https://github.com/glyphmusic/server.git glyph-server \
     && git clone --depth 1 --branch "$DESKTOP_REF" --filter=blob:none --sparse https://github.com/glyphmusic/desktop.git glyph \
-    && git -C glyph sparse-checkout set crates/glyph-protocol assets/icons
+    && git -C glyph sparse-checkout set crates/glyph-protocol assets/icons     # Only glyph-protocol is built from the app repo; its root workspace
+    # manifest (kept by the sparse checkout) would capture the crate.
+    && rm glyph/Cargo.toml
 WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
