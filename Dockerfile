@@ -2,15 +2,15 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
 FROM rust:1-slim AS build
-ARG SERVER_REF=main
-ARG DESKTOP_REF=main
+ARG SERVER_REF=v0.2.0
+ARG DESKTOP_REF=v0.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
 RUN git clone --depth 1 --branch "$SERVER_REF" https://github.com/glyphmusic/server.git glyph-server \
     && git clone --depth 1 --branch "$DESKTOP_REF" --filter=blob:none --sparse https://github.com/glyphmusic/desktop.git glyph \
     && git -C glyph sparse-checkout set crates/glyph-protocol assets/icons \
-    && printf '[workspace]\nresolver = "2"\nmembers = ["crates/glyph-protocol"]\n\n[workspace.package]\nversion = "0.1.0"\nedition = "2021"\nlicense = "MIT OR Apache-2.0"\n' > glyph/Cargo.toml
+    && printf '[workspace]\nresolver = "2"\nmembers = ["crates/glyph-protocol"]\n\n[workspace.package]\nversion = "0.2.0"\nedition = "2021"\nlicense = "MIT OR Apache-2.0"\n' > glyph/Cargo.toml
 # (Only glyph-protocol is built from the app repo. The app's root manifest
 # lists members the sparse checkout leaves out, so it is replaced by one that
 # keeps just the fields glyph-protocol inherits.)
