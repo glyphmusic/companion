@@ -45,6 +45,21 @@ home connections. No port has to be opened; the tunnel connects out.
 If the machine is off, only YouTube is missing: the Worker answers 503 for it
 and every other source keeps working.
 
+## Switch it off and on
+
+YouTube can be paused without stopping anything: while the companion is off
+it answers every Worker request with 403 Forbidden, and the app simply shows
+no YouTube results. It takes effect at once and survives restarts (the switch
+is a file in the cache volume).
+
+```bash
+docker compose exec companion glyph-server companion status
+docker compose exec companion glyph-server companion off
+docker compose exec companion glyph-server companion on
+```
+
+Run them in this folder (`C:\glyph-companion` on PC0373).
+
 ## Update
 
 Nothing to do: Watchtower pulls the weekly image. By hand:

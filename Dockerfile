@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && unzip -q /tmp/deno.zip -d /usr/local/bin && rm /tmp/deno.zip \
     && chmod a+rx /usr/local/bin/yt-dlp /usr/local/bin/deno \
     && apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
-    && useradd -r -u 10001 -m glyph && chown glyph /usr/local/bin/yt-dlp
+    && useradd -r -u 10001 -m glyph && chown glyph /usr/local/bin/yt-dlp     && mkdir /cache && chown glyph /cache
 COPY --from=build /src/glyph-server/target/release/glyph-server /usr/local/bin/glyph-server
 USER glyph
 EXPOSE 8787
