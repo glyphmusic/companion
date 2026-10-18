@@ -2,7 +2,7 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
 FROM rust:1-slim-trixie AS build
-ARG SERVER_REF=5cc649344b4324de6caf884903b29808279c7cbd
+ARG SERVER_REF=bac75914c2f81000b8c90810208d6f5dfd194344
 ARG DESKTOP_REF=v0.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
