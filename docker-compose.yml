@@ -1,0 +1,36 @@
+# The companion and a Cloudflare Tunnel in front of it. No ports are opened
+# on this machine; the tunnel connects out to Cloudflare.
+# Secrets go in .env (see .env.example), never in this file.
+services:
+  companion:
+    image: ghcr.io/glyphmusic/companion:latest
+    restart: unless-stopped
+    environment:
+      # Same secret as the Worker's YTDLP_SERVICE_TOKEN. With it set, only
+      # /internal/* (Bearer token) and /v1/health answer.
+      YTDLP_SERVICE_TOKEN: ${YTDLP_SERVICE_TOKEN:?set YTDLP_SERVICE_TOKEN in .env}
+      GLYPH_CACHE_DIR: /cache
+    volumes:
+      - cache:/cache
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      # From Cloudflare Zero Trust > Networks > Tunnels; public hostname
+      # e.g. ytdlp.glyph.my -> http://companion:8787
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      - companion
+
+  # Pulls a new image when the weekly build publishes one.
+  updater:
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    command: --interval 21600 --cleanup companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  cache:
