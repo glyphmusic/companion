@@ -1,11 +1,12 @@
 name: image
 
 # Builds ghcr.io/glyphmusic/companion from the public server and desktop repos.
-# Weekly as well, so new server releases and yt-dlp/Deno versions get in.
+# Check upstream commits every 15 minutes; also refresh runtimes weekly.
 on:
   push:
     branches: [main]
   schedule:
+    - cron: "*/15 * * * *"
     - cron: "17 4 * * 1"
   workflow_dispatch:
 
@@ -13,9 +14,14 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: companion-image
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -24,16 +30,64 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve source commits and check for an existing image
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          server=$(gh api repos/glyphmusic/server/commits/main --jq .sha)
+          desktop=$(gh api repos/glyphmusic/desktop/commits/main --jq .sha)
+          [[ "$server" =~ ^[0-9a-f]{40}$ && "$desktop" =~ ^[0-9a-f]{40}$ ]]
+          tag="ghcr.io/glyphmusic/companion:server-${server}-desktop-${desktop}"
+          build=true
+          if [[ "$EVENT" == schedule && "$SCHEDULE" != '17 4 * * 1' ]]; then
+            if docker manifest inspect "$tag" >/dev/null 2>&1; then build=false; fi
+          fi
+          echo "server=$server" >> "$GITHUB_OUTPUT"
+          echo "desktop=$desktop" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
+        if: steps.source.outputs.build == 'true'
         with:
           context: .
-          push: true
+          load: true
+          push: false
           platforms: linux/amd64
+          build-args: |
+            SERVER_REF=${{ steps.source.outputs.server }}
+            DESKTOP_REF=${{ steps.source.outputs.desktop }}
           tags: |
             ghcr.io/glyphmusic/companion:latest
-            ghcr.io/glyphmusic/companion:range-fix
-            ghcr.io/glyphmusic/companion:${{ github.sha }}
+            ${{ steps.source.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Verify published companion binary
-        run: docker run --rm --entrypoint glyph-server ghcr.io/glyphmusic/companion:${{ github.sha }} --version
+      - name: Verify image before publication
+        if: steps.source.outputs.build == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint glyph-server ghcr.io/glyphmusic/companion:latest --version
+          docker run -d --name companion-smoke -e YTDLP_SERVICE_TOKEN=ci-only-token-at-least-32-characters ghcr.io/glyphmusic/companion:latest
+          trap 'docker rm -f companion-smoke' EXIT
+          for attempt in $(seq 1 45); do
+            if docker exec companion-smoke curl -fsS http://127.0.0.1:8787/v1/health; then
+              code=$(docker exec companion-smoke curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/internal/audio/7wtfhZwyrcc)
+              test "$code" = 401
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs companion-smoke
+          exit 1
+      - name: Publish verified image
+        if: steps.source.outputs.build == 'true'
+        env:
+          SOURCE_TAG: ${{ steps.source.outputs.tag }}
+        run: |
+          docker push "$SOURCE_TAG"
+          docker push ghcr.io/glyphmusic/companion:latest

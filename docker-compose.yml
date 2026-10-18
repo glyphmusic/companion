@@ -5,6 +5,8 @@ services:
   companion:
     image: ghcr.io/glyphmusic/companion:latest
     restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
     environment:
       # Same secret as the Worker's YTDLP_SERVICE_TOKEN. With it set, only
       # /internal/* (Bearer token) and /v1/health answer.
@@ -28,7 +30,9 @@ services:
   updater:
     image: containrrr/watchtower:latest
     restart: unless-stopped
-    command: --interval 21600 --cleanup companion
+    command: --interval 300 --cleanup --label-enable
+    environment:
+      DOCKER_API_VERSION: "1.44"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
