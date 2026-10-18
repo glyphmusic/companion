@@ -2,12 +2,14 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
 FROM rust:1-slim-trixie AS build
-ARG SERVER_REF=v0.2.0
+ARG SERVER_REF=5cc649344b4324de6caf884903b29808279c7cbd
 ARG DESKTOP_REF=v0.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
-RUN git clone --depth 1 --branch "$SERVER_REF" https://github.com/glyphmusic/server.git glyph-server \
+RUN git init glyph-server \
+    && git -C glyph-server fetch --depth 1 https://github.com/glyphmusic/server.git "$SERVER_REF" \
+    && git -C glyph-server checkout --detach FETCH_HEAD \
     && git clone --depth 1 --branch "$DESKTOP_REF" --filter=blob:none --sparse https://github.com/glyphmusic/desktop.git glyph \
     && git -C glyph sparse-checkout set crates/glyph-protocol assets/icons \
     && printf '[workspace]\nresolver = "2"\nmembers = ["crates/glyph-protocol"]\n\n[workspace.package]\nversion = "0.2.0"\nedition = "2021"\nlicense = "MIT OR Apache-2.0"\n' > glyph/Cargo.toml
