@@ -17,13 +17,14 @@ home connections. No port has to be opened; the tunnel connects out.
   and Deno. yt-dlp updates itself on every start.
 - `docker-compose.yml`: the companion, `cloudflared` and Watchtower (pulls new
   images).
-- `.github/workflows/image.yml`: builds `ghcr.io/glyphmusic/companion` on push
-  and every Monday.
+- `.github/workflows/image.yml`: checks upstream source commits every 15 minutes,
+  builds changed sources, and refreshes the runtime every Monday. Images pass a
+  smoke test before publication. Watchtower checks for images every five minutes.
 
 ## Setup
 
-1. **Tunnel.** Cloudflare dashboard > Zero Trust > Networks > Tunnels >
-   Create a tunnel (cloudflared). Copy its token. Add a public hostname,
+1. **Tunnel.** Cloudflare dashboard > Networking > Tunnels > Create a tunnel
+   (cloudflared). Copy its token. Under Routes add a published application,
    e.g. `ytdlp.glyph.my`, service `http://companion:8787`.
 2. **Token.** Make a random secret of at least 32 characters, e.g.
    `openssl rand -hex 32`.
@@ -42,10 +43,32 @@ home connections. No port has to be opened; the tunnel connects out.
 5. **Check:** `https://ytdlp.glyph.my/v1/health` answers; a YouTube search in
    the app returns YouTube results.
 
+The companion keeps a bounded cache of resolved YouTube URLs in memory and
+streams audio ranges without keeping a persistent audio library here. Three
+prestarted yt-dlp processes resolve different songs concurrently; duplicate
+requests for the same video share one lookup. Audio and metadata work have
+separate capacity limits.
+
+The Worker caches search results and can keep audio in the R2 bucket
+`glyph-covers` (prefix `audio/`). Cached audio can play while this machine is
+off; uncached YouTube requests still need the companion.
+
 If the machine is off, only YouTube is missing: the Worker answers 503 for it
 and every other source keeps working.
 
 ## Switch it off and on
+
+From any computer, through the Worker's admin API (needs the Worker secret
+`ADMIN_PASSWORD_HASH`):
+
+```bash
+glyph-server remote login https://api.glyph.my
+glyph-server remote companion off
+glyph-server remote companion on
+```
+
+The Worker then stops calling the companion at once. Directly on this
+machine instead:
 
 YouTube can be paused without stopping anything: while the companion is off
 it answers every Worker request with 403 Forbidden, and the app simply shows

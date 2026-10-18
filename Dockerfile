@@ -2,8 +2,8 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
 FROM rust:1-slim-trixie AS build
-ARG SERVER_REF=1a78e6158bc7a50a74a254a85fe30f6fe4bae6ed
-ARG DESKTOP_REF=dc907cab0a69117af22e661c6b1b6247adb24061
+ARG SERVER_REF=v0.2.2
+ARG DESKTOP_REF=v0.2.2
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
