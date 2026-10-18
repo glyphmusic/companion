@@ -35,3 +35,5 @@ jobs:
             ghcr.io/glyphmusic/companion:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Verify published companion binary
+        run: docker run --rm --entrypoint glyph-server ghcr.io/glyphmusic/companion:${{ github.sha }} --version

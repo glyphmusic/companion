@@ -1,7 +1,7 @@
 # glyph-server as the Worker's yt-dlp companion: the native server plus
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
-FROM rust:1-slim AS build
+FROM rust:1-slim-trixie AS build
 ARG SERVER_REF=v0.2.0
 ARG DESKTOP_REF=v0.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -17,7 +17,7 @@ RUN git clone --depth 1 --branch "$SERVER_REF" https://github.com/glyphmusic/ser
 WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg python3 curl unzip \
     && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && curl -fsSL https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
