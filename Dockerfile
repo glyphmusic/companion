@@ -1,6 +1,6 @@
 # glyph-server as the Worker's yt-dlp companion: the native server plus
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
-# Sources come straight from the public repos, so this repo holds no code.
+# Server sources come from the public repos; r-dlp uses checked release assets.
 FROM rust:1-slim-trixie AS build
 ARG SERVER_REF=v0.2.6
 ARG DESKTOP_REF=v0.2.5
@@ -24,14 +24,19 @@ RUN git init glyph-server \
 WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
-FROM rust:1-slim-trixie AS rdlp-build
-ARG RDLP_REF=v0.1.1
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
-WORKDIR /src/r-dlp
-RUN git init . \
-    && git fetch --depth 1 https://github.com/glyphmusic/r-dlp.git "$RDLP_REF" \
-    && git checkout --detach FETCH_HEAD \
-    && cargo build --release --locked
+FROM debian:trixie-slim AS rdlp-build
+ARG RDLP_VERSION=0.1.1
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /rdlp
+RUN set -eu; \
+    case "$(dpkg --print-architecture)" in amd64) arch=x86_64;; arm64) arch=aarch64;; *) exit 1;; esac; \
+    asset="r-dlp-${RDLP_VERSION}-${arch}-unknown-linux-gnu.tar.gz"; \
+    base="https://github.com/glyphmusic/r-dlp/releases/download/v${RDLP_VERSION}"; \
+    curl --connect-timeout 10 --max-time 60 --retry 2 -fsSL "$base/$asset" -o "$asset"; \
+    curl --connect-timeout 10 --max-time 60 --retry 2 -fsSL "$base/SHA256SUMS.txt" -o SHA256SUMS.txt; \
+    grep " $asset$" SHA256SUMS.txt | sha256sum -c -; \
+    tar -xzf "$asset" ./r-dlp; \
+    test "$(./r-dlp --version)" = "$RDLP_VERSION"
 
 FROM debian:trixie-slim
 ARG SERVER_REF
@@ -46,11 +51,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
     && useradd -r -u 10001 -m glyph && chown glyph /usr/local/bin/yt-dlp     && mkdir /cache && chown glyph /cache
 COPY --from=build /src/glyph-server/target/release/glyph-server /usr/local/bin/glyph-server
-COPY --from=rdlp-build /src/r-dlp/target/release/r-dlp /usr/local/bin/r-dlp
+COPY --from=rdlp-build /rdlp/r-dlp /usr/local/bin/r-dlp
+COPY update_rdlp.py /usr/local/lib/glyph/update_rdlp.py
 USER glyph
 EXPOSE 8787
 ENV GLYPH_BIND=0.0.0.0:8787
-ENV GLYPH_RDLP_PATH=/usr/local/bin/r-dlp
-HEALTHCHECK --interval=60s --timeout=5s CMD curl -fsS http://127.0.0.1:8787/v1/health >/dev/null || exit 1
-# YouTube changes often: yt-dlp updates itself on every start.
-ENTRYPOINT ["sh", "-c", "yt-dlp -U >/dev/null 2>&1; exec glyph-server \"$@\"", "--"]
+ENV GLYPH_RDLP_PATH=/cache/tools/r-dlp
+HEALTHCHECK --start-period=60s --interval=60s --timeout=5s CMD curl -fsS http://127.0.0.1:8787/v1/health >/dev/null || exit 1
+# Resolve the latest checked release dependency before starting native workers.
+# Offline startup uses a verified persistent copy or the bundled resolver.
+ENTRYPOINT ["sh", "-c", "python3 /usr/local/lib/glyph/update_rdlp.py || export GLYPH_RDLP_PATH=/usr/local/bin/r-dlp; timeout 20s yt-dlp -U >/dev/null 2>&1 || true; exec glyph-server \"$@\"", "--"]

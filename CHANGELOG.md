@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Install r-dlp's matching GitHub release at startup as a checked runtime dependency, with a persistent cache and bundled offline fallback.
+- Support version pins and disabling automatic release checks without rebuilding the container.
 - Pin r-dlp v0.1.1 in automated image builds and verify its version before publication.
 - Include HTTP/2 negotiation and a shared resolution deadline in the native audio resolver.
 

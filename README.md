@@ -44,7 +44,17 @@ home connections. No port has to be opened; the tunnel connects out.
 5. **Check:** `https://ytdlp.glyph.my/v1/health` answers; a YouTube search in
    the app returns YouTube results.
 
-The companion uses r-dlp v0.1.1 for direct YouTube audio resolution. Three native
+The companion installs r-dlp as a release dependency on every startup: it checks
+the latest stable GitHub release, selects the Linux asset for the CPU, validates
+SHA-256 and the executable version, then atomically installs it in
+`/cache/tools/r-dlp`. The cache volume retains it across container replacements.
+Offline startup uses the verified cached executable or the bundled v0.1.1 copy.
+Restart only the companion to pick up a new r-dlp release:
+`docker compose restart companion`. Set `GLYPH_RDLP_VERSION=0.1.1` to pin a
+version or `GLYPH_RDLP_AUTO_UPDATE=0` to keep the verified local copy without
+checking GitHub. An explicit `GLYPH_RDLP_PATH` override bypasses this updater.
+
+Three native
 workers are started in advance and reuse HTTP connections and visitor context.
 yt-dlp remains installed for searches, metadata and extraction fallback. To
 temporarily use the original Python worker backend, override `GLYPH_RDLP_PATH`
