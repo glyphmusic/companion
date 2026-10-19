@@ -1,6 +1,7 @@
 # Glyph companion
 
-Runs [glyph-server](https://github.com/glyphmusic/server) as the yt-dlp
+Runs [glyph-server](https://github.com/glyphmusic/server) with
+[r-dlp](https://github.com/glyphmusic/r-dlp) as its native audio resolver and yt-dlp
 companion of the Glyph Cloudflare Worker. A Worker cannot start programs, so
 YouTube search and audio go from the Worker to this machine:
 
@@ -43,9 +44,15 @@ home connections. No port has to be opened; the tunnel connects out.
 5. **Check:** `https://ytdlp.glyph.my/v1/health` answers; a YouTube search in
    the app returns YouTube results.
 
+The companion uses r-dlp v0.1.0 for direct YouTube audio resolution. Three native
+workers are started in advance and reuse HTTP connections and visitor context.
+yt-dlp remains installed for searches, metadata and extraction fallback. To
+temporarily use the original Python worker backend, override `GLYPH_RDLP_PATH`
+with an empty value in Compose and recreate the companion service.
+
 The companion keeps a bounded cache of resolved YouTube URLs in memory and
 streams audio ranges without keeping a persistent audio library here. Three
-prestarted yt-dlp processes resolve different songs concurrently; duplicate
+prestarted native processes resolve different songs concurrently; duplicate
 requests for the same video share one lookup. Audio and metadata work have
 separate capacity limits.
 

@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.2.3 — 2026-10-19
+## 0.2.4 - 2026-10-19
+
+- Enable r-dlp v0.1.0 as the default prestarted audio resolver; keep yt-dlp for search, metadata and extraction fallback.
+- Build from server v0.2.5 and desktop protocol v0.2.4, including forced YouTube search and server-based downloads.
+- Pin and label all three source revisions, and smoke-test native resolver startup before image publication.
+
+## 0.2.3 â€” 2026-10-19
 
 - Build the companion from server v0.2.4 and desktop protocol v0.2.3, with independent release references.
 - Retry full-source searches before using cached Deezer previews and recover from empty or failed YouTube searches.

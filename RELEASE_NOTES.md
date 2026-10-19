@@ -1,8 +1,7 @@
-# Glyph Companion 0.2.3
+# Glyph Companion 0.2.4
 
-- Build the companion from server v0.2.4 and desktop protocol v0.2.3, with independent release references.
-- Retry full-source searches before using cached Deezer previews and recover from empty or failed YouTube searches.
-- Recognize artists in video titles even when the upload channel differs, and accept nullable channel metadata.
-- Include the server resolver and performance fixes from v0.2.4.
+- Enable r-dlp v0.1.0 as the default prestarted audio resolver; keep yt-dlp for search, metadata and extraction fallback.
+- Build from server v0.2.5 and desktop protocol v0.2.4, including forced YouTube search and server-based downloads.
+- Pin and label all three source revisions, and smoke-test native resolver startup before image publication.
 
-Container: `ghcr.io/glyphmusic/companion:0.2.3`.
+Container: `ghcr.io/glyphmusic/companion:0.2.4`.

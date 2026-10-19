@@ -2,8 +2,9 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Sources come straight from the public repos, so this repo holds no code.
 FROM rust:1-slim-trixie AS build
-ARG SERVER_REF=v0.2.4
-ARG DESKTOP_REF=v0.2.3
+ARG SERVER_REF=v0.2.5
+ARG DESKTOP_REF=v0.2.4
+ARG RDLP_REF=v0.1.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
@@ -23,10 +24,20 @@ RUN git init glyph-server \
 WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
+FROM rust:1-slim-trixie AS rdlp-build
+ARG RDLP_REF=v0.1.0
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /src/r-dlp
+RUN git init . \
+    && git fetch --depth 1 https://github.com/glyphmusic/r-dlp.git "$RDLP_REF" \
+    && git checkout --detach FETCH_HEAD \
+    && cargo build --release --locked
+
 FROM debian:trixie-slim
 ARG SERVER_REF
 ARG DESKTOP_REF
-LABEL io.glyph.server-revision=$SERVER_REF io.glyph.desktop-revision=$DESKTOP_REF
+ARG RDLP_REF
+LABEL io.glyph.server-revision=$SERVER_REF io.glyph.desktop-revision=$DESKTOP_REF io.glyph.rdlp-revision=$RDLP_REF
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg python3 curl unzip \
     && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && curl -fsSL https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
@@ -35,9 +46,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
     && useradd -r -u 10001 -m glyph && chown glyph /usr/local/bin/yt-dlp     && mkdir /cache && chown glyph /cache
 COPY --from=build /src/glyph-server/target/release/glyph-server /usr/local/bin/glyph-server
+COPY --from=rdlp-build /src/r-dlp/target/release/r-dlp /usr/local/bin/r-dlp
 USER glyph
 EXPOSE 8787
 ENV GLYPH_BIND=0.0.0.0:8787
+ENV GLYPH_RDLP_PATH=/usr/local/bin/r-dlp
 HEALTHCHECK --interval=60s --timeout=5s CMD curl -fsS http://127.0.0.1:8787/v1/health >/dev/null || exit 1
 # YouTube changes often: yt-dlp updates itself on every start.
 ENTRYPOINT ["sh", "-c", "yt-dlp -U >/dev/null 2>&1; exec glyph-server \"$@\"", "--"]
