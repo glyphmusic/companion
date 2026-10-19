@@ -41,8 +41,8 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          SERVER_RELEASE_REF: v0.2.6
-          DESKTOP_RELEASE_REF: v0.2.5
+          SERVER_RELEASE_REF: v0.3.0
+          DESKTOP_RELEASE_REF: v0.3.0
           RDLP_RELEASE_REF: v0.1.1
         shell: bash
         run: |

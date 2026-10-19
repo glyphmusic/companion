@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-19
+
+- Build from Glyph Server and desktop protocol v0.3.0, including streaming and resolver performance improvements and authenticated management endpoints.
 
 - Install r-dlp's matching GitHub release at startup as a checked runtime dependency, with a persistent cache and bundled offline fallback.
 - Support version pins and disabling automatic release checks without rebuilding the container.

@@ -1,7 +1,8 @@
-# Glyph Companion 0.2.5
+# Glyph Companion 0.3.0
 
-- Serve lyrics for the Worker from this machine (`POST /internal/lyrics`), so LRCLIB's rate limit on data-centre addresses no longer breaks lyrics.
-- Build from server v0.2.6 and desktop protocol v0.2.5, including the degraded lyrics and empty-radio answers.
-- Keep pinning and labelling all three source revisions, and smoke-test native resolver startup before image publication.
+- Build from Glyph Server and desktop protocol v0.3.0, including streaming and resolver performance improvements and authenticated management endpoints.
+- Install r-dlp as a verified release dependency at startup, with a persistent cache and bundled offline fallback.
+- Support resolver version pins and disabling automatic release checks without rebuilding the container.
+- Keep the bundled r-dlp version at 0.1.1; this release does not change r-dlp's version.
 
-Container: `ghcr.io/glyphmusic/companion:0.2.5`.
+Container: ghcr.io/glyphmusic/companion:0.3.0.
