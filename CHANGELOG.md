@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Pin r-dlp v0.1.1 in automated image builds and verify its version before publication.
+- Include HTTP/2 negotiation and a shared resolution deadline in the native audio resolver.
+
 ## 0.2.5 - 2026-10-19
 
 - Serve lyrics for the Worker from this machine (`POST /internal/lyrics`), so LRCLIB's rate limit on data-centre addresses no longer breaks lyrics.

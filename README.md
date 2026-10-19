@@ -44,7 +44,7 @@ home connections. No port has to be opened; the tunnel connects out.
 5. **Check:** `https://ytdlp.glyph.my/v1/health` answers; a YouTube search in
    the app returns YouTube results.
 
-The companion uses r-dlp v0.1.0 for direct YouTube audio resolution. Three native
+The companion uses r-dlp v0.1.1 for direct YouTube audio resolution. Three native
 workers are started in advance and reuse HTTP connections and visitor context.
 yt-dlp remains installed for searches, metadata and extraction fallback. To
 temporarily use the original Python worker backend, override `GLYPH_RDLP_PATH`

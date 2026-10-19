@@ -4,7 +4,7 @@
 FROM rust:1-slim-trixie AS build
 ARG SERVER_REF=v0.2.6
 ARG DESKTOP_REF=v0.2.5
-ARG RDLP_REF=v0.1.0
+ARG RDLP_REF=v0.1.1
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
@@ -25,7 +25,7 @@ WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
 FROM rust:1-slim-trixie AS rdlp-build
-ARG RDLP_REF=v0.1.0
+ARG RDLP_REF=v0.1.1
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src/r-dlp
 RUN git init . \
