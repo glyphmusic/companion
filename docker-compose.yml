@@ -1,3 +1,6 @@
+# Fixed project name: the volume stays the same whatever the folder is called.
+name: companion
+
 # The companion and a Cloudflare Tunnel in front of it. No ports are opened
 # on this machine; the tunnel connects out to Cloudflare.
 # Secrets go in .env (see .env.example), never in this file.

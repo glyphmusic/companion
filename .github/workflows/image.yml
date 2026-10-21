@@ -41,8 +41,8 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          SERVER_RELEASE_REF: v0.3.0
-          DESKTOP_RELEASE_REF: v0.3.0
+          SERVER_RELEASE_REF: v0.5.0
+          DESKTOP_RELEASE_REF: v0.5.0
           RDLP_RELEASE_REF: v0.1.1
         shell: bash
         run: |
@@ -57,7 +57,7 @@ jobs:
             version_tag="ghcr.io/glyphmusic/companion:${REF_NAME#v}"
           fi
           server=$(gh api "repos/glyphmusic/server/commits/$source_ref" --jq .sha)
-          desktop=$(gh api "repos/glyphmusic/desktop/commits/$desktop_ref" --jq .sha)
+          desktop=$(gh api "repos/glyphmusic/apps/commits/$desktop_ref" --jq .sha)
           rdlp=$(gh api "repos/glyphmusic/r-dlp/commits/$RDLP_RELEASE_REF" --jq .sha)
           [[ "$server" =~ ^[0-9a-f]{40}$ && "$desktop" =~ ^[0-9a-f]{40}$ && "$rdlp" =~ ^[0-9a-f]{40}$ ]]
           tag="ghcr.io/glyphmusic/companion:server-${server:0:12}-desktop-${desktop:0:12}-rdlp-${rdlp:0:12}"

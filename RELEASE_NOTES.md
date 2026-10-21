@@ -1,8 +1,7 @@
-# Glyph Companion 0.3.0
+# Glyph Companion 0.4.0
 
-- Build from Glyph Server and desktop protocol v0.3.0, including streaming and resolver performance improvements and authenticated management endpoints.
-- Install r-dlp as a verified release dependency at startup, with a persistent cache and bundled offline fallback.
-- Support resolver version pins and disabling automatic release checks without rebuilding the container.
-- Keep the bundled r-dlp version at 0.1.1; this release does not change r-dlp's version.
+- Build from Glyph Server v0.5.0 and the apps protocol v0.5.0: live jams, device control between apps and lighter jam updates.
+- Source checkout from the renamed `glyphmusic/apps` repository.
+- Fixed Compose project name `companion`, so the data volume does not depend on the folder name.
 
-Container: ghcr.io/glyphmusic/companion:0.3.0.
+Container: ghcr.io/glyphmusic/companion:0.4.0.
