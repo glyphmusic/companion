@@ -57,6 +57,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=build /src/glyph-server/target/release/glyph-server /usr/local/bin/glyph-server
 COPY --from=rdlp-build /rdlp/r-dlp /usr/local/bin/r-dlp
 COPY update_rdlp.py /usr/local/lib/glyph/update_rdlp.py
+COPY entrypoint.sh /usr/local/lib/glyph/entrypoint.sh
 # r-dlp updates at startup must carry a signature by this key.
 COPY release-key.pub /usr/local/lib/glyph/release-key.pub
 USER glyph
@@ -68,4 +69,4 @@ ENV GLYPH_CONFIG=/cache/server.toml
 HEALTHCHECK --start-period=60s --interval=60s --timeout=5s CMD curl -fsS http://127.0.0.1:8787/v1/health >/dev/null || exit 1
 # Resolve the latest checked release dependency before starting native workers.
 # Offline startup uses a verified persistent copy or the bundled resolver.
-ENTRYPOINT ["sh", "-c", "python3 /usr/local/lib/glyph/update_rdlp.py || export GLYPH_RDLP_PATH=/usr/local/bin/r-dlp; timeout 20s yt-dlp -U >/dev/null 2>&1 || true; exec glyph-server \"$@\"", "--"]
+ENTRYPOINT ["sh", "/usr/local/lib/glyph/entrypoint.sh"]
