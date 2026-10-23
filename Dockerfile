@@ -26,15 +26,19 @@ RUN cargo build --release -p glyph-server-native
 
 FROM debian:trixie-slim AS rdlp-build
 ARG RDLP_VERSION=0.1.1
+# The bundled fallback is pinned by hash: GitHub alone cannot change it.
+# Raise these together with RDLP_VERSION (values from its SHA256SUMS.txt,
+# after `minisign -Vm SHA256SUMS.txt -p release-key.pub` accepted it).
+ARG RDLP_SHA256_X86_64=6677bc74e14ed2e6e55d070a34bad02b1fc31a07ad75ab19c56a8cf13744420c
+ARG RDLP_SHA256_AARCH64=908f47c8faa474f2bee6b2ea67ecb682f1accf7b6f0f75cefed9a3072f30a58b
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /rdlp
 RUN set -eu; \
-    case "$(dpkg --print-architecture)" in amd64) arch=x86_64;; arm64) arch=aarch64;; *) exit 1;; esac; \
+    case "$(dpkg --print-architecture)" in amd64) arch=x86_64; sum="$RDLP_SHA256_X86_64";; arm64) arch=aarch64; sum="$RDLP_SHA256_AARCH64";; *) exit 1;; esac; \
     asset="r-dlp-${RDLP_VERSION}-${arch}-unknown-linux-gnu.tar.gz"; \
     base="https://github.com/glyphmusic/r-dlp/releases/download/v${RDLP_VERSION}"; \
     curl --connect-timeout 10 --max-time 60 --retry 2 -fsSL "$base/$asset" -o "$asset"; \
-    curl --connect-timeout 10 --max-time 60 --retry 2 -fsSL "$base/SHA256SUMS.txt" -o SHA256SUMS.txt; \
-    grep " $asset$" SHA256SUMS.txt | sha256sum -c -; \
+    echo "$sum  $asset" | sha256sum -c -; \
     tar -xzf "$asset" ./r-dlp; \
     test "$(./r-dlp --version)" = "$RDLP_VERSION"
 
@@ -43,7 +47,7 @@ ARG SERVER_REF
 ARG DESKTOP_REF
 ARG RDLP_REF
 LABEL io.glyph.server-revision=$SERVER_REF io.glyph.desktop-revision=$DESKTOP_REF io.glyph.rdlp-revision=$RDLP_REF
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg python3 curl unzip \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg python3 curl unzip minisign \
     && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && curl -fsSL https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
     && unzip -q /tmp/deno.zip -d /usr/local/bin && rm /tmp/deno.zip \
@@ -53,6 +57,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=build /src/glyph-server/target/release/glyph-server /usr/local/bin/glyph-server
 COPY --from=rdlp-build /rdlp/r-dlp /usr/local/bin/r-dlp
 COPY update_rdlp.py /usr/local/lib/glyph/update_rdlp.py
+# r-dlp updates at startup must carry a signature by this key.
+COPY release-key.pub /usr/local/lib/glyph/release-key.pub
 USER glyph
 EXPOSE 8787
 ENV GLYPH_BIND=0.0.0.0:8787

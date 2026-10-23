@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Signed requests**: the companion accepts requests the Worker signs with `YTDLP_SERVICE_TOKEN`, so the secret no longer travels with each request; changed, old or repeated requests are refused. Plain-token requests from older Workers still work until you set `GLYPH_COMPANION_SIGNED_ONLY=1`.
+- **Separate management secret**: status and updates through the Worker need `COMPANION_ADMIN_TOKEN` (empty: off). The search-and-audio secret can no longer start an update.
+- r-dlp updates at startup are installed only with a valid signature by the Glyph release key; the bundled fallback is pinned by its SHA-256.
+
 ## 0.4.0 - 2026-10-21
 
 ### Changed

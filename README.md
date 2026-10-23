@@ -27,28 +27,48 @@ home connections. No port has to be opened; the tunnel connects out.
 1. **Tunnel.** Cloudflare dashboard > Networking > Tunnels > Create a tunnel
    (cloudflared). Copy its token. Under Routes add a published application,
    e.g. `ytdlp.glyph.my`, service `http://companion:8787`.
-2. **Token.** Make a random secret of at least 32 characters, e.g.
-   `openssl rand -hex 32`.
+2. **Tokens.** Make two different random secrets of at least 32 characters,
+   e.g. `openssl rand -hex 32` twice: `YTDLP_SERVICE_TOKEN` for search and
+   audio, `COMPANION_ADMIN_TOKEN` for status and updates.
 3. **This machine** (Docker installed, starts with the system):
    ```bash
    git clone https://github.com/glyphmusic/companion.git
    cd companion
-   cp .env.example .env   # fill in YTDLP_SERVICE_TOKEN and TUNNEL_TOKEN
+   cp .env.example .env   # fill in both tokens and TUNNEL_TOKEN
    docker compose up -d
    ```
 4. **Worker** (in `glyph-server/crates/glyph-server-worker`):
    ```bash
-   npx wrangler secret put YTDLP_SERVICE_URL     # https://ytdlp.glyph.my
-   npx wrangler secret put YTDLP_SERVICE_TOKEN   # the same secret as in .env
+   npx wrangler secret put YTDLP_SERVICE_URL       # https://ytdlp.glyph.my
+   npx wrangler secret put YTDLP_SERVICE_TOKEN     # the same secret as in .env
+   npx wrangler secret put COMPANION_ADMIN_TOKEN   # the same secret as in .env
    ```
 5. **Check:** `https://ytdlp.glyph.my/v1/health` answers; a YouTube search in
    the app returns YouTube results.
 
+## How the Worker reaches it
+
+The Worker signs every request with `YTDLP_SERVICE_TOKEN` (HMAC over method,
+path, timestamp and body) instead of sending it. The companion refuses changed
+requests, requests more than a minute old and signatures it has already seen.
+Status and updates need `COMPANION_ADMIN_TOKEN`; without it they are off.
+Older Workers still send the plain token; set `GLYPH_COMPANION_SIGNED_ONLY=1`
+in `.env` once the Worker is updated (update this machine first, then the
+Worker). For more, put the tunnel hostname behind a Cloudflare Access service
+token and give the Worker `COMPANION_ACCESS_CLIENT_ID` and
+`COMPANION_ACCESS_CLIENT_SECRET`.
+
+## r-dlp updates
+
 The companion installs r-dlp as a release dependency on every startup: it checks
-the latest stable GitHub release, selects the Linux asset for the CPU, validates
-SHA-256 and the executable version, then atomically installs it in
+the latest stable GitHub release, selects the Linux asset for the CPU, checks the
+signature of `SHA256SUMS.txt` against the Glyph release key (`release-key.pub`,
+for exactly that r-dlp version), validates SHA-256 and the executable version,
+then atomically installs it in
 `/cache/tools/r-dlp`. The cache volume retains it across container replacements.
-Offline startup uses the verified cached executable or the bundled v0.1.1 copy.
+Offline startup uses the verified cached executable or the bundled v0.1.1 copy,
+which the image build pins by its SHA-256. Releases without a valid signature are
+not installed; the verified copy stays.
 Restart only the companion to pick up a new r-dlp release:
 `docker compose restart companion`. Set `GLYPH_RDLP_VERSION=0.1.1` to pin a
 version or `GLYPH_RDLP_AUTO_UPDATE=0` to keep the verified local copy without

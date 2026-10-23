@@ -12,8 +12,15 @@ services:
       com.centurylinklabs.watchtower.enable: "true"
     environment:
       # Same secret as the Worker's YTDLP_SERVICE_TOKEN. With it set, only
-      # /internal/* (Bearer token) and /v1/health answer.
+      # /internal/* and /v1/health answer. The Worker signs each request
+      # with it; the secret itself never travels.
       YTDLP_SERVICE_TOKEN: ${YTDLP_SERVICE_TOKEN:?set YTDLP_SERVICE_TOKEN in .env}
+      # Separate secret for status and updates (`glyph remote companion ...`).
+      # Empty: those commands are off.
+      COMPANION_ADMIN_TOKEN: ${COMPANION_ADMIN_TOKEN:-}
+      # 1 = refuse the older plain-token requests (set it once the Worker is
+      # updated).
+      GLYPH_COMPANION_SIGNED_ONLY: ${GLYPH_COMPANION_SIGNED_ONLY:-0}
       GLYPH_CACHE_DIR: /cache
     volumes:
       - cache:/cache
