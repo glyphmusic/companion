@@ -66,11 +66,11 @@ signature of `SHA256SUMS.txt` against the Glyph release key (`release-key.pub`,
 for exactly that r-dlp version), validates SHA-256 and the executable version,
 then atomically installs it in
 `/cache/tools/r-dlp`. The cache volume retains it across container replacements.
-Offline startup uses the verified cached executable or the bundled v0.1.1 copy,
+Offline startup uses the verified cached executable or the bundled v0.2.0 copy,
 which the image build pins by its SHA-256. Releases without a valid signature are
 not installed; the verified copy stays.
 Restart only the companion to pick up a new r-dlp release:
-`docker compose restart companion`. Set `GLYPH_RDLP_VERSION=0.1.1` to pin a
+`docker compose restart companion`. Set `GLYPH_RDLP_VERSION=0.2.0` to pin a
 version or `GLYPH_RDLP_AUTO_UPDATE=0` to keep the verified local copy without
 checking GitHub. An explicit `GLYPH_RDLP_PATH` override bypasses this updater.
 

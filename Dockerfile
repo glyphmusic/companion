@@ -2,9 +2,9 @@
 # yt-dlp, ffmpeg and Deno (yt-dlp needs a JS runtime for YouTube).
 # Server sources come from the public repos; r-dlp uses checked release assets.
 FROM rust:1-slim-trixie AS build
-ARG SERVER_REF=v0.5.0
-ARG DESKTOP_REF=v0.5.0
-ARG RDLP_REF=v0.1.1
+ARG SERVER_REF=v0.8.0
+ARG DESKTOP_REF=v0.8.0
+ARG RDLP_REF=v0.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 # glyph-server expects the app repo next to it (glyph-protocol, site icons).
@@ -25,12 +25,12 @@ WORKDIR /src/glyph-server
 RUN cargo build --release -p glyph-server-native
 
 FROM debian:trixie-slim AS rdlp-build
-ARG RDLP_VERSION=0.1.1
+ARG RDLP_VERSION=0.2.0
 # The bundled fallback is pinned by hash: GitHub alone cannot change it.
 # Raise these together with RDLP_VERSION (values from its SHA256SUMS.txt,
 # after `minisign -Vm SHA256SUMS.txt -p release-key.pub` accepted it).
-ARG RDLP_SHA256_X86_64=6677bc74e14ed2e6e55d070a34bad02b1fc31a07ad75ab19c56a8cf13744420c
-ARG RDLP_SHA256_AARCH64=908f47c8faa474f2bee6b2ea67ecb682f1accf7b6f0f75cefed9a3072f30a58b
+ARG RDLP_SHA256_X86_64=00e6d4c721d9124b274d0c623ab4df1de561a8ba320b5b3af195b6640ba7baab
+ARG RDLP_SHA256_AARCH64=644e6a1354f76947952428f097385e20abed2a72639d357a2ee33748258bab91
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /rdlp
 RUN set -eu; \
@@ -63,6 +63,8 @@ USER glyph
 EXPOSE 8787
 ENV GLYPH_BIND=0.0.0.0:8787
 ENV GLYPH_RDLP_PATH=/cache/tools/r-dlp
+# server.toml and bans.json live in the writable cache volume.
+ENV GLYPH_CONFIG=/cache/server.toml
 HEALTHCHECK --start-period=60s --interval=60s --timeout=5s CMD curl -fsS http://127.0.0.1:8787/v1/health >/dev/null || exit 1
 # Resolve the latest checked release dependency before starting native workers.
 # Offline startup uses a verified persistent copy or the bundled resolver.

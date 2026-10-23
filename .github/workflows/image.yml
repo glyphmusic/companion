@@ -43,9 +43,9 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          SERVER_RELEASE_REF: v0.5.0
-          DESKTOP_RELEASE_REF: v0.5.0
-          RDLP_RELEASE_REF: v0.1.1
+          SERVER_RELEASE_REF: v0.8.0
+          DESKTOP_RELEASE_REF: v0.8.0
+          RDLP_RELEASE_REF: v0.2.0
         shell: bash
         run: |
           set -euo pipefail
@@ -95,13 +95,13 @@ jobs:
         run: |
           set -euo pipefail
           docker run --rm --entrypoint glyph-server ghcr.io/glyphmusic/companion:latest --version
-          test "$(docker run --rm --entrypoint r-dlp ghcr.io/glyphmusic/companion:latest --version)" = 0.1.1
+          test "$(docker run --rm --entrypoint r-dlp ghcr.io/glyphmusic/companion:latest --version)" = 0.2.0
           test "$(docker run --rm --entrypoint sh ghcr.io/glyphmusic/companion:latest -c 'echo "$GLYPH_RDLP_PATH"')" = /cache/tools/r-dlp
-          docker run -d --name companion-smoke -e GLYPH_RDLP_VERSION=0.1.1 -e YTDLP_SERVICE_TOKEN=ci-only-token-at-least-32-characters ghcr.io/glyphmusic/companion:latest
+          docker run -d --name companion-smoke -e GLYPH_RDLP_VERSION=0.2.0 -e YTDLP_SERVICE_TOKEN=ci-only-token-at-least-32-characters ghcr.io/glyphmusic/companion:latest
           trap 'docker rm -f companion-smoke' EXIT
           for attempt in $(seq 1 45); do
             if docker exec companion-smoke curl -fsS http://127.0.0.1:8787/v1/health; then
-              test "$(docker exec companion-smoke /cache/tools/r-dlp --version)" = 0.1.1
+              test "$(docker exec companion-smoke /cache/tools/r-dlp --version)" = 0.2.0
               code=$(docker exec companion-smoke curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/internal/audio/7wtfhZwyrcc)
               test "$code" = 401
               docker exec companion-smoke sh -c 'test "$(grep -l "^r-dlp$" /proc/[0-9]*/comm 2>/dev/null | wc -l)" -ge 3'

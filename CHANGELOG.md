@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-23
+
+### Changed
+
+- Includes Glyph Server and apps protocol 0.8.0 and signed r-dlp 0.2.0.
+- Server configuration and bans use the writable cache volume.
+
 ### Changed
 
 - **Signed requests**: the companion accepts requests the Worker signs with `YTDLP_SERVICE_TOKEN`, so the secret no longer travels with each request; changed, old or repeated requests are refused. Plain-token requests from older Workers still work until you set `GLYPH_COMPANION_SIGNED_ONLY=1`.
