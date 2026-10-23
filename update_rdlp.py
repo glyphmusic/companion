@@ -17,6 +17,8 @@ BUNDLED = Path('/usr/local/bin/r-dlp')
 CACHED = Path('/cache/tools/r-dlp')
 REPO = 'https://github.com/glyphmusic/r-dlp'
 VERSION = re.compile(r'v?(\d+\.\d+\.\d+)')
+# Public half of the Glyph release key (glyph_protocol::release).
+RELEASE_KEY = Path('/usr/local/lib/glyph/release-key.pub')
 
 
 def version(path):
@@ -45,6 +47,21 @@ def fetch(url, limit, deadline):
                 raise ValueError('Dependency download too large')
             if not chunk:
                 return bytes(chunks)
+
+
+def verify_signature(checksums, signature, tag, key=None):
+    """minisign must accept the checksum list with the Glyph release key, and
+    its trusted comment must name r-dlp and this tag."""
+    expected = f'glyph-release repo=glyphmusic/r-dlp tag={tag}'
+    key = key or RELEASE_KEY
+    with tempfile.TemporaryDirectory() as staging:
+        listing = Path(staging) / 'SHA256SUMS.txt'
+        listing.write_bytes(checksums)
+        (Path(staging) / 'SHA256SUMS.txt.minisig').write_bytes(signature)
+        result = subprocess.run(['minisign', '-V', '-p', str(key), '-m', str(listing), '-Q'],
+                                capture_output=True, text=True, timeout=10)
+    if result.returncode != 0 or result.stdout.strip() != expected:
+        raise ValueError('Dependency checksums are not signed by the Glyph release key')
 
 
 def target():
@@ -132,7 +149,9 @@ def update(destination=CACHED, bundled=BUNDLED):
             return current
     asset = f'r-dlp-{desired}-{target()}.tar.gz'
     base = f'{REPO}/releases/download/v{desired}'
-    checksums = fetch(base + '/SHA256SUMS.txt', 65536, deadline).decode('ascii')
+    listing = fetch(base + '/SHA256SUMS.txt', 65536, deadline)
+    verify_signature(listing, fetch(base + '/SHA256SUMS.txt.minisig', 4096, deadline), f'v{desired}')
+    checksums = listing.decode('ascii')
     expected = [line.split()[0] for line in checksums.splitlines()
                 if len(line.split()) == 2 and line.split()[1].lstrip('*') == asset]
     if len(expected) != 1 or not re.fullmatch('[0-9a-fA-F]{64}', expected[0]):

@@ -3,6 +3,7 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -33,12 +34,32 @@ class Updates(unittest.TestCase):
         env = patch.dict(os.environ, {'GLYPH_RDLP_VERSION': 'latest', 'GLYPH_RDLP_AUTO_UPDATE': '1'})
         env.start()
         self.addCleanup(env.stop)
+        # A throwaway key stands in for the Glyph release key.
+        self.key = self.keypair('test')
+        key = patch.object(updater, 'RELEASE_KEY', self.key[0])
+        key.start()
+        self.addCleanup(key.stop)
 
-    def downloads(self, payload, desired='0.1.1', checksum=None):
+    def keypair(self, name):
+        public = Path(self.directory.name) / f'{name}.pub'
+        secret = Path(self.directory.name) / f'{name}.key'
+        subprocess.run(['minisign', '-G', '-W', '-p', str(public), '-s', str(secret)], check=True, capture_output=True)
+        return public, secret
+
+    def sign(self, data, comment, secret=None):
+        listing = Path(self.directory.name) / 'listing'
+        listing.write_bytes(data)
+        subprocess.run(['minisign', '-S', '-s', str(secret or self.key[1]), '-m', str(listing), '-t', comment], check=True, capture_output=True)
+        return listing.with_name('listing.minisig').read_bytes()
+
+    def downloads(self, payload, desired='0.1.1', checksum=None, comment=None, secret=None):
         checksum = checksum or hashlib.sha256(payload).hexdigest()
+        listing = f'{checksum}  r-dlp-{desired}-x86_64-unknown-linux-gnu.tar.gz\n'.encode()
+        signature = self.sign(listing, comment or f'glyph-release repo=glyphmusic/r-dlp tag=v{desired}', secret)
         return patch.object(updater, 'fetch', side_effect=[
             json.dumps({'tag_name': 'v' + desired}).encode(),
-            f'{checksum}  r-dlp-{desired}-x86_64-unknown-linux-gnu.tar.gz\n'.encode(),
+            listing,
+            signature,
             payload,
         ])
 
@@ -54,6 +75,16 @@ class Updates(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
                 updater.update(self.cached, self.bundled)
         self.assertEqual(updater.cached_version(self.cached), '0.1.0')
+
+    @patch.object(updater, 'target', return_value='x86_64-unknown-linux-gnu')
+    def test_unsigned_or_misdirected_checksums_are_refused(self, _):
+        other = self.keypair('other')
+        for options in ({'secret': other[1]}, {'comment': 'glyph-release repo=glyphmusic/r-dlp tag=v0.1.0'},
+                        {'comment': 'glyph-release repo=glyphmusic/apps tag=v0.1.1'}):
+            with self.downloads(archive('0.1.1'), **options):
+                with self.assertRaisesRegex(ValueError, 'not signed'):
+                    updater.update(self.cached, self.bundled)
+            self.assertEqual(updater.cached_version(self.cached), '0.1.0')
 
     @patch.object(updater, 'target', return_value='x86_64-unknown-linux-gnu')
     def test_wrong_executable_version_is_not_installed(self, _):
