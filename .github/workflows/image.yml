@@ -73,7 +73,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"
           echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         if: steps.source.outputs.build == 'true'
         with:
           context: .
